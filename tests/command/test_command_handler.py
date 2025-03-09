@@ -3,7 +3,7 @@ Test the CommandHandler class.
 """
 # pylint: disable=protected-access
 # Used for testing purposes only.
-from calculator.command.command_handler import CommandHandler
+from src.command.command_handler import CommandHandler
 
 
 def test_register_command(mock_command):

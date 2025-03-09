@@ -5,7 +5,7 @@ from typing import List, Callable, Dict, Any
 import pytest  # pylint: disable=wrong-import-order
 
 from src.model.calculation import Calculation
-from src.model.calculation_history import CalculationHistory
+from src.persistance.calculation_history import CalculationHistory
 from src.persistance.memory_repository import MemoryRepository
 from src.operations.basic import add, subtract, multiply
 

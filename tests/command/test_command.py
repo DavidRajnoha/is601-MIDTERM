@@ -3,9 +3,9 @@ This module contains tests for the command module.
 """
 
 import pytest
-from calculator.command.commands.exit import ExitCommand
-from calculator.command.commands.greet import GreetCommand
-from calculator.command.command import ExitException
+from src.command.commands.exit import ExitCommand
+from src.command.commands.greet import GreetCommand
+from src.command.command import ExitException
 
 
 def test_exit_command_raises_exception():

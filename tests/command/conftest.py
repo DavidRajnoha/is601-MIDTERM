@@ -8,7 +8,7 @@ import inspect
 from unittest import mock
 import pytest
 
-from calculator.command.command import Command
+from src.command.command import Command
 
 class MockCommand(Command):
     """A mock command for testing purposes."""
