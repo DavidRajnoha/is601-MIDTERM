@@ -1,9 +1,10 @@
 """Module containing the CalculationHistory class for storing calculation history."""
-
+import logging
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from decimal import Decimal
 
+from src.core.logging import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.memory_repository import MemoryRepository
@@ -50,6 +51,7 @@ class CalculationHistoryInterface(ABC):
 
 
 @singleton
+@log_class
 class CalculationHistory(CalculationHistoryInterface):
     """
     Manages the history of calculations in the application.
@@ -66,7 +68,7 @@ class CalculationHistory(CalculationHistoryInterface):
             repository: A repository implementation for storing calculations
         """
         self.repository = repository or MemoryRepository()
-        
+
     def add_calculation(self, calculation: Calculation) -> None:
         """
         Add a calculation to the history.
@@ -74,6 +76,7 @@ class CalculationHistory(CalculationHistoryInterface):
         Args:
             calculation: The calculation to add, which should already be executed
         """
+        logging.debug(f"Adding calculation to history: {calculation}")
         self.repository.add(calculation)
         
     def get_all_calculations(self) -> List[Calculation]:
@@ -136,4 +139,5 @@ class CalculationHistory(CalculationHistoryInterface):
         
     def clear_history(self) -> None:
         """Clear all calculation history."""
+        logging.debug("Clearing calculation history")
         self.repository.clear()

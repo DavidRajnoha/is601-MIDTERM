@@ -1,3 +1,4 @@
+from src.core.logging import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.calculation_history import CalculationHistoryInterface, CalculationHistory
@@ -6,6 +7,7 @@ from decimal import Decimal
 import logging
 
 @singleton
+@log_class
 class Calculator:
     """
     Calculator class that uses a Singleton pattern.
@@ -15,7 +17,6 @@ class Calculator:
         self._history = history or CalculationHistory()
 
     def perform_operation(self, operation, a: Decimal, b: Decimal) -> Decimal:
-        logging.debug(f"Performing operation: {operation.__name__}({a}, {b})")
         calculation = Calculation(operation, a, b)
         self._history.add_calculation(calculation)
         return calculation.perform_operation()

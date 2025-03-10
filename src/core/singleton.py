@@ -1,3 +1,6 @@
+from src.core.logging import log_method
+
+
 def singleton(cls):
     """
     Decorator that transforms a class into a singleton.
@@ -5,7 +8,14 @@ def singleton(cls):
     """
     instances = {}
 
+    @log_method
     def get_instance(*args, **kwargs):
+        """
+        Returns the instance of the singleton class.
+        :param args:
+        :param kwargs:
+        :return:
+        """
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         elif args or kwargs:
@@ -14,8 +24,11 @@ def singleton(cls):
                 instances[cls].configure(*args, **kwargs)
         return instances[cls]
 
-    # Add a reset method for testing
+    @log_method
     def reset_instance():
+        """
+        Resets the instance of the singleton class.
+        """
         if cls in instances:
             del instances[cls]
 

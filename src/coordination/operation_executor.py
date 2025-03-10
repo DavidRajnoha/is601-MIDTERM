@@ -6,11 +6,14 @@ from src.coordination.calculator import Calculator
 
 import logging
 
+from src.core.logging import log_class
+
+
 def _get_decimal_input(prompt: str) -> Decimal:
     raw_input = input(prompt)
     return Decimal(raw_input)
 
-
+@log_class
 class BinaryOperationExecutor:
     """
     Encapsulates the shared logic for executing an operation:
@@ -30,15 +33,17 @@ class BinaryOperationExecutor:
         try:
             a = _get_decimal_input("Enter the first number: ")
             b = _get_decimal_input("Enter the second number: ")
+            logging.debug(f"Read inputs: {a}, {b}")
         except (InvalidOperation, ValueError):
+            logging.error("Invalid input. Please enter valid decimal numbers.")
             print("Invalid input. Please enter valid decimal numbers.")
             return
 
         try:
-            logging.info(f"Executing {self.operation_name} operation with inputs: {a}, {b}")
+            logging.debug(f"Executing {self.operation_name} operation with inputs: {a}, {b}")
             result = self.calculator.perform_operation(self.operation_callable, a, b)
-            logging.info(f"Result of {self.operation_name}: {result}")
             print(f"Result of {self.operation_name}: {result}")
+            logging.info(f"User executed {self.operation_name} operation with inputs: {a}, {b}. Result: {result}")
         except ZeroDivisionError:
             logging.error("Division by zero.")
             print("Error: Division by zero.")

@@ -1,10 +1,12 @@
 from typing import List, Optional, Callable
 
+from src.core.logging import log_method, log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.repository_interface import RepositoryInterface, T
 
 @singleton
+@log_class
 class MemoryRepository(RepositoryInterface[Calculation]):
     # TODO: Change the singleton to work with generic types
     """In-memory implementation of the repository interface."""
