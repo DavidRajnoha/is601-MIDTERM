@@ -1,9 +1,12 @@
 from typing import List, Optional, Callable
 
+from src.core.singleton import singleton
+from src.model.calculation import Calculation
 from src.persistance.repository_interface import RepositoryInterface, T
 
-
-class MemoryRepository(RepositoryInterface[T]):
+@singleton
+class MemoryRepository(RepositoryInterface[Calculation]):
+    # TODO: Change the singleton to work with generic types
     """In-memory implementation of the repository interface."""
     
     def __init__(self):

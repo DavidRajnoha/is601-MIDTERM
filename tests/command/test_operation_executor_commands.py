@@ -10,13 +10,19 @@ These tests cover:
 """
 
 # pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 
 from decimal import Decimal
+
+import pytest
+
+from src.coordination.calculator import Calculator
 from src.coordination.operation_executor import BinaryOperationExecutor as OperationExecutor
 from src.command.commands.add import AddCommand
 from src.command.commands.subtract import SubtractCommand
 from src.command.commands.multiply import MultiplyCommand
 from src.command.commands.divide import DivideCommand
+from src.persistance.calculation_history import CalculationHistory
 
 
 def dummy_add(a: Decimal, b: Decimal) -> Decimal:
@@ -41,6 +47,18 @@ def dummy_divide(a: Decimal, b: Decimal) -> Decimal:
     May raise ZeroDivisionError if b is zero.
     """
     return a / b
+
+
+@pytest.fixture
+def mock_history(mock_repository):
+    """Return a CalculationHistory instance."""
+    return CalculationHistory(mock_repository)
+
+
+@pytest.fixture
+def calculator(mock_history):
+    """Return a Calculator instance."""
+    return Calculator(mock_history)
 
 
 def test_operation_executor_valid(monkeypatch, capsys):

@@ -2,6 +2,7 @@
 This module contains the OperationExecutor class, which encapsulates the shared logic for executing an operation.
 """
 from decimal import Decimal, InvalidOperation
+from src.coordination.calculator import Calculator
 
 import logging
 
@@ -17,7 +18,8 @@ class BinaryOperationExecutor:
       - Executing the provided operation.
       - Handling errors and displaying results.
     """
-    def __init__(self, operation_callable, operation_name: str):
+    def __init__(self, operation_callable, operation_name: str, calculator: Calculator = None):
+        self.calculator = calculator or Calculator()
         self.operation_callable = operation_callable
         self.operation_name = operation_name
 
@@ -34,7 +36,7 @@ class BinaryOperationExecutor:
 
         try:
             logging.info(f"Executing {self.operation_name} operation with inputs: {a}, {b}")
-            result = self.operation_callable(a, b)
+            result = self.calculator.perform_operation(self.operation_callable, a, b)
             logging.info(f"Result of {self.operation_name}: {result}")
             print(f"Result of {self.operation_name}: {result}")
         except ZeroDivisionError:

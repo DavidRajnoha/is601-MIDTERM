@@ -26,18 +26,18 @@ def test_items() -> List[TestItem]:
 
 
 @pytest.fixture
-def populated_repository(test_items) -> MemoryRepository[TestItem]:  # pylint: disable=redefined-outer-name
+def populated_repository(test_items) -> MemoryRepository:  # pylint: disable=redefined-outer-name
     """Create a repository pre-populated with test items."""
-    repository = MemoryRepository[TestItem]()
+    repository = MemoryRepository()
     for item in test_items:
         repository.add(item)
     return repository
 
 
 @pytest.fixture
-def empty_repository() -> MemoryRepository[TestItem]:
+def empty_repository() -> MemoryRepository:
     """Create an empty repository for testing."""
-    return MemoryRepository[TestItem]()
+    return MemoryRepository()
 
 
 def test_add(populated_repository):  # pylint: disable=redefined-outer-name

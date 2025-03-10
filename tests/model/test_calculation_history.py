@@ -2,7 +2,7 @@
 from decimal import Decimal
 from typing import List, Callable, Dict, Any
 
-import pytest  # pylint: disable=wrong-import-order
+import pytest
 
 from src.model.calculation import Calculation
 from src.persistance.calculation_history import CalculationHistory
@@ -10,12 +10,10 @@ from src.persistance.memory_repository import MemoryRepository
 from src.operations.basic import add, subtract, multiply
 
 
-# Fixtures for common testing needs
-
-@pytest.fixture
+@pytest.fixture(scope="function")
 def history() -> CalculationHistory:
     """Create a new calculation history with an empty repository."""
-    repository = MemoryRepository[Calculation]()
+    repository = MemoryRepository()
     return CalculationHistory(repository)
 
 
