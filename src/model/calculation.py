@@ -1,7 +1,10 @@
+import logging
 from typing import Callable, List, Union, Optional
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import uuid
 from datetime import datetime
+
+from src.core.operation_registry import operation_registry
 
 class Calculation:
     """
@@ -58,3 +61,36 @@ class Calculation:
         operands_str = ', '.join(str(op) for op in self.operands)
         result_str = f" = {self.result}" if self.result is not None else ""
         return f"{self.operation_name}({operands_str}){result_str}"
+
+    def to_dict(self) -> dict:
+        """Convert the Calculation object to a dictionary."""
+        return {
+            'id': self.id,
+            'operation_name': self.operation_name,
+            'operands': ','.join(str(op) for op in self.operands),
+            'result': str(self.result) if self.result is not None else "",
+            'timestamp': self.timestamp.isoformat()
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Calculation':
+        """Create calculation from dictionary representation."""
+        try:
+            operands = [Decimal(op) for op in data['operands'].split(',')]
+        except InvalidOperation:
+            logging.debug(f"Invalid operand value: {data['operands']}")
+            raise ValueError("Invalid operand value")
+
+        operation_name = data['operation_name']
+
+        if operation_name not in operation_registry:
+            raise ValueError(f"Unknown operation: {operation_name}")
+
+        operation = operation_registry[operation_name]
+
+        calc = cls(operation, *operands)
+        calc.id = data['id']
+        calc.result = Decimal(data['result']) if data['result'] else None
+        calc.timestamp = datetime.fromisoformat(data['timestamp'])
+
+        return calc

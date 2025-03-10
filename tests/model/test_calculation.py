@@ -7,7 +7,6 @@ from src.model.calculation import Calculation
 from src.operations.basic import add, subtract, multiply, divide
 
 
-# Define some multi-operand operations for testing
 def multi_add(*args) -> Decimal:
     """Add multiple operands together."""
     return Decimal(sum(args))

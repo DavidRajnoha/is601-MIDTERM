@@ -1,23 +1,24 @@
-from decimal import Decimal
-
+from src.core.operation_registry import register_operation
 from src.core.logging import log_method
 
-
+@register_operation
 @log_method
-def add(a: Decimal, b: Decimal) -> Decimal:
+def add(a, b):
     return a + b
 
+@register_operation
 @log_method
-def subtract(a: Decimal, b: Decimal) -> Decimal:
+def subtract(a, b):
     return a - b
 
+@register_operation
 @log_method
-def multiply(a: Decimal, b: Decimal) -> Decimal:
+def multiply(a, b):
     return a * b
 
+@register_operation
 @log_method
-def divide(a: Decimal, b: Decimal) -> Decimal:
+def divide(a, b):
     if b == 0:
         raise ZeroDivisionError("Cannot divide by zero")
-
     return a / b

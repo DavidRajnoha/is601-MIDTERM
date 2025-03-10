@@ -17,6 +17,7 @@ pylint = "^3.3.5"
 pytest-pylint = "^0.21.0"
 pytest-cov = "^6.0.0"
 dotenv = "^0.9.9"
+pandas = "^2.2.3"
 
 
 [build-system]

@@ -18,5 +18,6 @@ class Calculator:
 
     def perform_operation(self, operation, a: Decimal, b: Decimal) -> Decimal:
         calculation = Calculation(operation, a, b)
+        result = calculation.perform_operation()
         self._history.add_calculation(calculation)
-        return calculation.perform_operation()
+        return result

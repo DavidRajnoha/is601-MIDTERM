@@ -7,6 +7,7 @@ from decimal import Decimal
 from src.core.logging import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
+from src.persistance.csv_repository import CSVRepository
 from src.persistance.memory_repository import MemoryRepository
 from src.persistance.repository_interface import RepositoryInterface
 
@@ -67,7 +68,7 @@ class CalculationHistory(CalculationHistoryInterface):
         Args:
             repository: A repository implementation for storing calculations
         """
-        self.repository = repository or MemoryRepository()
+        self.repository = repository or CSVRepository()
 
     def add_calculation(self, calculation: Calculation) -> None:
         """
