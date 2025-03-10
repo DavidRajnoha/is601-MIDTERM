@@ -6,7 +6,7 @@ import functools
 import inspect
 import logging
 
-logger = logging.getLogger("function.logger")
+logger = logging.getLogger("trace")
 
 def log_method(func):
     @functools.wraps(func)
@@ -19,7 +19,8 @@ def log_method(func):
             result = func(*args, **kwargs)
             return result
         except Exception as e:
-            logger.exception(f"Exception raised in {func.__name__}. exception: {str(e)}")
+            # Not logging at error level as the exception is part of the normal flow.
+            logger.debug(f"Exception raised in {func.__name__}. exception: {str(e)}")
             raise e
     return wrapper
 

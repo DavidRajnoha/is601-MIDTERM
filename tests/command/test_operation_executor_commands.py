@@ -92,7 +92,7 @@ def test_operation_executor_zero_division(monkeypatch, capsys):
 
     executor.execute()
     captured = capsys.readouterr().out
-    assert "Division by zero" in captured
+    assert "The result of division by zero is not defined." in captured
 
 
 def test_add_command(monkeypatch, capsys):
@@ -146,4 +146,4 @@ def test_divide_command_zero_division(monkeypatch, capsys):
     command = DivideCommand(OperationExecutor(dummy_divide, "Division"))
     command.execute()
     captured = capsys.readouterr().out
-    assert "Division by zero" in captured
+    assert "The result of division by zero is not defined." in captured

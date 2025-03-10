@@ -45,9 +45,9 @@ class BinaryOperationExecutor:
             print(f"Result of {self.operation_name}: {result}")
             logging.info(f"User executed {self.operation_name} operation with inputs: {a}, {b}. Result: {result}")
         except ZeroDivisionError:
-            logging.error("Division by zero.")
-            print("Error: Division by zero.")
+            logging.debug("Division by zero.")
+            print("The result of division by zero is not defined.")
         except Exception as e:
-            logging.error(f"An error occurred: {e}")
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred {e}.")
+            print(f"An error occurred.")
 

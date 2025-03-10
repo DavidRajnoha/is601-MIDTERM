@@ -1,6 +1,13 @@
-import pytest
+"""
+Unit tests for the logging decorators.
+"""
+# pylint: disable=missing-function-docstring, missing-class-docstring
+# pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 import logging
 import io
+
+import pytest
 
 from src.core.logging import log_method, log_class
 
@@ -19,7 +26,7 @@ def logger_setup():
     handler.setFormatter(formatter)
 
     # Get the logger used by the decorators and configure it
-    logger = logging.getLogger('function.logger')
+    logger = logging.getLogger('trace')
     logger.setLevel(logging.DEBUG)
 
     # Remove any existing handlers to avoid duplicate logs
@@ -41,6 +48,7 @@ def test_log_method(logger_setup):
 
     @log_method
     def test_function(a, b, c=None):
+        # pylint: disable=unused-argument
         return a + b
 
     result = test_function(1, 2, c="test")

@@ -45,7 +45,7 @@ class CommandHandler:
             logging.debug(f"Executing command {command_name}")
             command.execute()
         except AttributeError:
-            logging.error(f"Command {command_name} does not have an execute method")
+            logging.debug(f"Command {command_name} does not have an execute method")
             self.handle_invalid_command(command_name)
 
     def handle_invalid_command(self, command_name):
