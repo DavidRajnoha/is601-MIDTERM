@@ -5,7 +5,7 @@ import pkgutil
 from difflib import get_close_matches
 
 from src.command.command import Command
-from src.core.logging import log_class
+from src.core.logging_decorator import log_class
 
 @log_class
 class CommandHandler:

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Callable, Dict, Any
 from decimal import Decimal
 
-from src.core.logging import log_class
+from src.core.logging_decorator import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.csv_repository import CSVRepository

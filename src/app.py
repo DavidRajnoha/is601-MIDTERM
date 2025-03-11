@@ -3,14 +3,15 @@ This module contains the App class which is responsible for running the applicat
 """
 import os
 
+from dotenv import load_dotenv
+import logging
+import logging.config
+
 from src.command.command import ExitException
 from src.command.command_handler import CommandHandler
 import src.command.commands as commands_package
 from src.core.application_context import ApplicationContext
-
-from dotenv import load_dotenv
-import logging
-import logging.config
+from src.core.logging_configurator import LoggingConfigurator
 
 
 class App:
@@ -19,9 +20,9 @@ class App:
     """
     def __init__(self):
         load_dotenv()
-        self.configure_logging()
-        self.setup_dependencies()
+        LoggingConfigurator.configure()
 
+        self.setup_dependencies()
         self.command_handler = CommandHandler()
 
 

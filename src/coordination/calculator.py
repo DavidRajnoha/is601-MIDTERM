@@ -1,4 +1,4 @@
-from src.core.logging import log_class
+from src.core.logging_decorator import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.calculation_history import CalculationHistoryInterface, CalculationHistory

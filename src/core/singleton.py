@@ -1,4 +1,4 @@
-from src.core.logging import log_method
+from src.core.logging_decorator import log_method
 
 
 def singleton(cls):

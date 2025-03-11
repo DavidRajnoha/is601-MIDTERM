@@ -1,7 +1,7 @@
 """In-memory repository implementation."""
 from typing import List, Optional, Callable, Dict, Any
 
-from src.core.logging import log_method, log_class
+from src.core.logging_decorator import log_method, log_class
 from src.core.singleton import singleton
 from src.persistance.repository_interface import RepositoryInterface
 

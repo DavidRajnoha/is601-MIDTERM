@@ -9,7 +9,7 @@ import io
 
 import pytest
 
-from src.core.logging import log_method, log_class
+from src.core.logging_decorator import log_method, log_class
 
 
 @pytest.fixture

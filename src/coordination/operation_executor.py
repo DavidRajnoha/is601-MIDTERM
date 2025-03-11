@@ -6,7 +6,7 @@ from src.coordination.calculator import Calculator
 
 import logging
 
-from src.core.logging import log_class
+from src.core.logging_decorator import log_class
 
 
 def _get_decimal_input(prompt: str) -> Decimal:
