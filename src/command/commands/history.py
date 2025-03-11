@@ -2,7 +2,6 @@
 from src.command.command import Command
 from src.core.logging import log_class
 from src.persistance.calculation_history import CalculationHistory, CalculationHistoryInterface
-from tests.model.test_calculation_history import history
 
 
 @log_class

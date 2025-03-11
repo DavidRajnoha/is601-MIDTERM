@@ -1,20 +1,74 @@
 """Tests for the CalculationHistory class."""
+# pylint: disable=redefined-outer-name
 from decimal import Decimal
-from typing import List, Callable, Dict, Any
+from typing import List, Callable, Dict, Any, Optional
+import logging
 
 import pytest
 
+
 from src.model.calculation import Calculation
 from src.persistance.calculation_history import CalculationHistory
-from src.persistance.memory_repository import MemoryRepository
 from src.operations.basic import add, subtract, multiply
 
 
+class MockRepository:
+    """Mock repository that can be configured to fail for testing error handling."""
+
+    def __init__(self):
+        self._items = []
+        self.fail_on_get_all = False
+
+    def add(self, item: Dict[str, Any]) -> None:
+        """Add an item to the repository."""
+        self._items.append(item)
+
+    def get_all(self) -> List[Dict[str, Any]]:
+        """Get all items, with option to simulate corrupted data."""
+        if self.fail_on_get_all:
+            return [{"corrupted": "data"}]  # Missing required fields
+        return self._items.copy()
+
+    def get_by_id(self, id_: str) -> Optional[Dict[str, Any]]:
+        """Get an item by its ID."""
+        for item in self._items:
+            if 'id' in item and item['id'] == id_:
+                return item
+        return None
+
+    def get_last(self) -> Optional[Dict[str, Any]]:
+        """Get the last item added to the repository."""
+        if not self._items:
+            return None
+        return self._items[-1]
+
+    def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> List[Dict[str, Any]]:
+        """Filter items by a predicate function."""
+        return [item for item in self._items if predicate(item)]
+
+    def clear(self) -> None:
+        """Clear all items from the repository."""
+        self._items.clear()
+
+    def delete(self, id_: str) -> bool:
+        """Delete an item from the repository by its ID."""
+        for i, item in enumerate(self._items):
+            if 'id' in item and item['id'] == id_:
+                self._items.pop(i)
+                return True
+        return False
+
+
 @pytest.fixture(scope="function")
-def history() -> CalculationHistory:
+def mock_repository() -> MockRepository:
+    """Create a mock repository for testing error handling."""
+    return MockRepository()
+
+
+@pytest.fixture(scope="function")
+def history(mock_repository) -> CalculationHistory:
     """Create a new calculation history with an empty repository."""
-    repository = MemoryRepository()
-    return CalculationHistory(repository)
+    return CalculationHistory(repository=mock_repository)
 
 
 @pytest.fixture
@@ -40,7 +94,7 @@ def create_calculation():
 
 
 @pytest.fixture
-def standard_calculations(create_calculation, history) -> Dict[str, Calculation]:  # pylint: disable=redefined-outer-name
+def standard_calculations(create_calculation, history) -> Dict[str, Calculation]:
     """Create a set of standard calculations and add them to history."""
     calculations = {
         "add_1_2": create_calculation(add, '1', '2'),      # Result: 3
@@ -55,7 +109,7 @@ def standard_calculations(create_calculation, history) -> Dict[str, Calculation]
 
 
 @pytest.fixture
-def calculations_by_operation(create_calculation, history) -> List[Calculation]:  # pylint: disable=redefined-outer-name
+def calculations_by_operation(create_calculation, history) -> List[Calculation]:
     """Create calculations with different operations for filtering tests."""
     operations_data = [
         (add, '1', '2'),      # Result: 3
@@ -75,7 +129,7 @@ def calculations_by_operation(create_calculation, history) -> List[Calculation]:
 
 
 @pytest.fixture
-def calculations_by_result(create_calculation, history) -> List[Calculation]:  # pylint: disable=redefined-outer-name
+def calculations_by_result(create_calculation, history) -> List[Calculation]:
     """Create calculations with specific results for filtering tests."""
     operations_data = [
         (add, 2, 4),         # Result: 6
@@ -93,15 +147,19 @@ def calculations_by_result(create_calculation, history) -> List[Calculation]:  #
     return calculations
 
 
-def test_add_calculation(history, executed_calculation):  # pylint: disable=redefined-outer-name
+def test_add_calculation(history, executed_calculation):
     """Test adding a calculation to the history."""
     history.add_calculation(executed_calculation)
 
     assert len(history.get_all_calculations()) == 1
-    assert history.get_last_calculation() == executed_calculation
+
+    last_calc = history.get_last_calculation()
+    assert last_calc is not None
+    assert last_calc.result == executed_calculation.result
+    assert last_calc.operation_name == executed_calculation.operation_name
 
 
-def test_get_all_calculations(history, standard_calculations):  # pylint: disable=redefined-outer-name
+def test_get_all_calculations(history, standard_calculations):
     """Test getting all calculations from history."""
     assert len(standard_calculations) == 3
     calculations = history.get_all_calculations()
@@ -111,7 +169,27 @@ def test_get_all_calculations(history, standard_calculations):  # pylint: disabl
     assert calculations[2].result == Decimal('9')  # 3 * 3
 
 
-def test_get_calculation_by_id(history, standard_calculations):  # pylint: disable=redefined-outer-name
+def test_get_all_calculations_with_corrupted_data(history, executed_calculation,
+                                                  mock_repository, caplog):
+    """Test getting calculations with some corrupted data."""
+    # Add one valid calculation
+    history.add_calculation(executed_calculation)
+
+    # Configure repository to return corrupted data
+    mock_repository.fail_on_get_all = True
+
+    # Get calculations with logging captured
+    with caplog.at_level(logging.WARNING):
+        calculations = history.get_all_calculations()
+
+    # Should only return valid calculations (none in this case)
+    assert len(calculations) == 0
+
+    # Check that warning was logged
+    assert any("Skipping invalid calculation" in record.message for record in caplog.records)
+
+
+def test_get_calculation_by_id(history, standard_calculations):
     """Test retrieving a calculation by its ID."""
     # Get the ID of the subtraction calculation
     target_id = standard_calculations["subtract_10_4"].id
@@ -123,14 +201,37 @@ def test_get_calculation_by_id(history, standard_calculations):  # pylint: disab
     assert retrieved_calc.result == Decimal('6')  # 10 - 4
 
 
-def test_get_calculation_by_id_not_found(history, executed_calculation):  # pylint: disable=redefined-outer-name
+def test_get_calculation_by_id_not_found(history, executed_calculation):
     """Test retrieving a calculation with a non-existent ID."""
     history.add_calculation(executed_calculation)
     retrieved_calc = history.get_calculation_by_id("non-existent-id")
     assert retrieved_calc is None
 
 
-def test_get_last_calculation(history, standard_calculations):  # pylint: disable=redefined-outer-name
+def test_get_calculation_by_id_with_corrupt_data(history, executed_calculation,
+                                                 monkeypatch, caplog):
+    """Test retrieving a calculation by ID with corrupted data."""
+    history.add_calculation(executed_calculation)
+
+    # Mock repository's get_by_id to return corrupted data
+    # pylint: disable=unused-argument
+    def mock_get_by_id(self, calc_id):
+        return {"corrupted": "data"}
+
+    monkeypatch.setattr(MockRepository, "get_by_id", mock_get_by_id)
+
+    # Try to retrieve with logging captured
+    with caplog.at_level(logging.WARNING):
+        result = history.get_calculation_by_id(executed_calculation.id)
+
+    # Should return None for corrupted data
+    assert result is None
+
+    # Check that warning was logged
+    assert any("Invalid calculation data" in record.message for record in caplog.records)
+
+
+def test_get_last_calculation(history, standard_calculations):
     """Test getting the most recent calculation."""
     retrieved_last = history.get_last_calculation()
     assert retrieved_last is not None
@@ -138,12 +239,12 @@ def test_get_last_calculation(history, standard_calculations):  # pylint: disabl
     assert retrieved_last.result == Decimal('9')  # 3 * 3
 
 
-def test_get_last_calculation_empty_history(history):  # pylint: disable=redefined-outer-name
+def test_get_last_calculation_empty_history(history):
     """Test getting the last calculation from an empty history."""
     assert history.get_last_calculation() is None
 
 
-def test_filter_calculations_by_operation(history, calculations_by_operation):  # pylint: disable=redefined-outer-name
+def test_filter_calculations_by_operation(history, calculations_by_operation):
     """Test filtering calculations by operation name."""
     # Verify calculations_by_operation fixture was used
     assert len(calculations_by_operation) == 5  # Use calculations_by_operation to satisfy pylint
@@ -164,7 +265,7 @@ def test_filter_calculations_by_operation(history, calculations_by_operation):  
     assert len(empty_calculations) == 0
 
 
-def test_filter_calculations_by_result(history, calculations_by_result):  # pylint: disable=redefined-outer-name
+def test_filter_calculations_by_result(history, calculations_by_result):
     """Test filtering calculations by result value."""
     # Verify calculations_by_result fixture was used
     assert len(calculations_by_result) == 4  # Use calculations_by_result to satisfy pylint
@@ -188,7 +289,7 @@ def test_filter_calculations_by_result(history, calculations_by_result):  # pyli
     assert len(empty_results) == 0
 
 
-def test_clear_history(history, create_calculation):  # pylint: disable=redefined-outer-name
+def test_clear_history(history, create_calculation):
     """Test clearing all calculation history."""
     history.add_calculation(create_calculation(add, 1, 2))
     history.add_calculation(create_calculation(subtract, 10, 4))
@@ -198,3 +299,16 @@ def test_clear_history(history, create_calculation):  # pylint: disable=redefine
     history.clear_history()
     assert len(history.get_all_calculations()) == 0
     assert history.get_last_calculation() is None
+
+
+def test_delete_calculation(history, create_calculation):
+    """Test deleting a calculation by ID."""
+    calc = create_calculation(add, 1, 2)
+    history.add_calculation(calc)
+
+    assert len(history.get_all_calculations()) == 1
+
+    result = history.delete_calculation(calc.id)
+
+    assert result is True
+    assert len(history.get_all_calculations()) == 0

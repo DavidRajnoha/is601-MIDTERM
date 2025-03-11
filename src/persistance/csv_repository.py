@@ -1,20 +1,20 @@
+"""CSV file repository implementation using pandas."""
 import logging
 import os
 import pandas as pd
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Dict, Any
 
 from src.core.logging import log_class
 from src.core.singleton import singleton
-from src.model.calculation import Calculation
-from src.persistance.repository_interface import RepositoryInterface, T
+from src.persistance.repository_interface import RepositoryInterface
 
 
 @singleton
 @log_class
-class CSVRepository(RepositoryInterface[Calculation]):
+class CSVRepository(RepositoryInterface[Dict[str, Any]]):
     """
     CSV file implementation of the repository interface using pandas.
-    Stores and retrieves items from a CSV file.
+    Stores and retrieves dictionaries from a CSV file.
     """
 
     def __init__(self, file_path: str = "data/calculations.csv"):
@@ -51,36 +51,32 @@ class CSVRepository(RepositoryInterface[Calculation]):
         logging.debug("Saving CSV repository to file")
         self._df.to_csv(self.file_path, index=False)
 
-
-
-    def add(self, item: T) -> None:
+    def add(self, item: Dict[str, Any]) -> None:
         """
-        Add an item to the repository.
+        Add an item dictionary to the repository.
 
         Args:
-            item: The item to add
+            item: The dictionary to add
         """
-        item_dict = Calculation.to_dict(item)
-
-        new_row = pd.DataFrame([item_dict])
+        new_row = pd.DataFrame([item])
         self._df = pd.concat([self._df, new_row], ignore_index=True)
         logging.debug(f"Added item to CSV repository: {item}")
 
         self._save_to_csv()
 
-    def get_all(self) -> List[Calculation]:
+    def get_all(self) -> List[Dict[str, Any]]:
         """
         Get all items from the repository.
 
         Returns:
-            A list of all items in the repository
+            A list of all dictionaries in the repository
         """
         if self._df.empty:
             return []
 
-        return [Calculation.from_dict(row.to_dict()) for _, row in self._df.iterrows()]
+        return [row.to_dict() for _, row in self._df.iterrows()]
 
-    def get_by_id(self, id: str) -> Optional[Calculation]:
+    def get_by_id(self, id: str) -> Optional[Dict[str, Any]]:
         """
         Get an item by its ID.
 
@@ -88,7 +84,7 @@ class CSVRepository(RepositoryInterface[Calculation]):
             id: The ID of the item to retrieve
 
         Returns:
-            The item if found, None otherwise
+            The dictionary if found, None otherwise
         """
         if self._df.empty:
             return None
@@ -97,29 +93,29 @@ class CSVRepository(RepositoryInterface[Calculation]):
         if filtered.empty:
             return None
 
-        return Calculation.from_dict(filtered.iloc[0])
+        return filtered.iloc[0].to_dict()
 
-    def get_last(self) -> Optional[T]:
+    def get_last(self) -> Optional[Dict[str, Any]]:
         """
         Get the last item added to the repository.
 
         Returns:
-            The last item if repository is not empty, None otherwise
+            The last dictionary if repository is not empty, None otherwise
         """
         if self._df.empty:
             return None
 
-        return Calculation.from_dict(self._df.iloc[-1])
+        return self._df.iloc[-1].to_dict()
 
-    def filter(self, predicate: Callable[[T], bool]) -> List[T]:
+    def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> List[Dict[str, Any]]:
         """
         Filter items by a predicate function.
 
         Args:
-            predicate: A function that takes an item and returns a boolean
+            predicate: A function that takes a dictionary and returns a boolean
 
         Returns:
-            A list of items for which the predicate returns True
+            A list of dictionaries for which the predicate returns True
         """
         if self._df.empty:
             return []
@@ -132,28 +128,28 @@ class CSVRepository(RepositoryInterface[Calculation]):
         logging.debug("Clearing CSV repository")
         self._df = pd.DataFrame()
         self._save_to_csv()
-        
+
     def delete(self, id: str) -> bool:
         """
         Delete an item from the repository by its ID.
-        
+
         Args:
             id: The ID of the item to delete
-            
+
         Returns:
             bool: True if item was found and deleted, False otherwise
         """
         if self._df.empty:
             return False
-            
+
         initial_len = len(self._df)
         self._df = self._df[self._df['id'] != id]
-        
+
         # Check if any rows were deleted
         deleted = len(self._df) < initial_len
-        
+
         if deleted:
             logging.debug(f"Deleted item with ID {id} from CSV repository")
             self._save_to_csv()
-            
+
         return deleted
