@@ -6,6 +6,8 @@ import os
 from src.command.command import ExitException
 from src.command.command_handler import CommandHandler
 import src.command.commands as commands_package
+from src.core.application_context import ApplicationContext
+
 from dotenv import load_dotenv
 import logging
 import logging.config
@@ -18,6 +20,8 @@ class App:
     def __init__(self):
         load_dotenv()
         self.configure_logging()
+        self.setup_dependencies()
+
         self.command_handler = CommandHandler()
 
 
@@ -39,6 +43,15 @@ class App:
             logging.basicConfig(level=logging.DEBUG)
             logging_configuration = "configured with basicConfig"
         logging.info(f"Logging {logging_configuration}")
+
+    def setup_dependencies(self):
+        """
+        Configures the application dependencies.
+        """
+        repository_type = os.getenv("REPOSITORY_TYPE", "csv")
+        file_path = os.getenv("REPOSITORY_DATA_PATH", "data/calculations.csv")
+        ApplicationContext.configure_repositories(repository_type, file_path)
+
 
     def run(self):
         """
