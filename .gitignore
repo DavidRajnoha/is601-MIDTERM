@@ -49,6 +49,8 @@ log/
 # Database
 *.db
 *.sqlite3
+data/
+*.csv
 
 # Security and Authentication
 .secrets

@@ -1,4 +1,5 @@
 """Tests for the MemoryRepository class."""
+# code duplication in test is ok for readability
 from dataclasses import dataclass
 from typing import List
 
@@ -8,7 +9,7 @@ from src.persistance.memory_repository import MemoryRepository
 
 
 @dataclass
-class TestItem:
+class MockItem:
     """Simple test item class for repository testing."""
     id: str
     name: str
@@ -16,12 +17,12 @@ class TestItem:
 
 
 @pytest.fixture
-def test_items() -> List[TestItem]:
+def test_items() -> List[MockItem]:
     """Create a list of test items for repository testing."""
     return [
-        TestItem(id="1", name="Item 1", value=10),
-        TestItem(id="2", name="Item 2", value=20),
-        TestItem(id="3", name="Item 3", value=30)
+        MockItem(id="1", name="Item 1", value=10),
+        MockItem(id="2", name="Item 2", value=20),
+        MockItem(id="3", name="Item 3", value=30)
     ]
 
 
@@ -42,7 +43,7 @@ def empty_repository() -> MemoryRepository:
 
 def test_add(populated_repository):  # pylint: disable=redefined-outer-name
     """Test adding items to the repository."""
-    new_item = TestItem(id="4", name="Item 4", value=40)
+    new_item = MockItem(id="4", name="Item 4", value=40)
     populated_repository.add(new_item)
     assert len(populated_repository.get_all()) == 4
     assert populated_repository.get_by_id("4") == new_item
@@ -53,7 +54,7 @@ def test_get_all(populated_repository):  # pylint: disable=redefined-outer-name
     all_items = populated_repository.get_all()
     assert len(all_items) == 3
     # Make sure get_all returns a copy of the items
-    all_items.append(TestItem(id="4", name="Item 4", value=40))
+    all_items.append(MockItem(id="4", name="Item 4", value=40))
     assert len(populated_repository.get_all()) == 3
 
 
@@ -98,3 +99,25 @@ def test_clear(populated_repository):  # pylint: disable=redefined-outer-name
     populated_repository.clear()
     assert len(populated_repository.get_all()) == 0
     assert populated_repository.get_last() is None
+
+
+def test_delete(populated_repository):  # pylint: disable=redefined-outer-name
+    """Test deleting a specific item from the repository."""
+    initial_item_count = len(populated_repository.get_all())
+    delete_result = populated_repository.delete("2")
+    remaining_items = populated_repository.get_all()
+
+    assert delete_result is True
+    assert len(remaining_items) == initial_item_count - 1
+    assert all(item.id != "2" for item in remaining_items)
+    assert any(item.id == "1" for item in remaining_items)
+    assert any(item.id == "3" for item in remaining_items)
+
+
+def test_delete_nonexistent(populated_repository):  # pylint: disable=redefined-outer-name
+    """Test deleting an item that doesn't exist."""
+    initial_item_count = len(populated_repository.get_all())
+    delete_result = populated_repository.delete("999")
+
+    assert delete_result is False
+    assert len(populated_repository.get_all()) == initial_item_count

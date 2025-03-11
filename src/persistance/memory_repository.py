@@ -74,3 +74,19 @@ class MemoryRepository(RepositoryInterface[Calculation]):
     def clear(self) -> None:
         """Clear all items from the repository."""
         self._items.clear()
+        
+    def delete(self, id: str) -> bool:
+        """
+        Delete an item from the repository by its ID.
+        
+        Args:
+            id: The ID of the item to delete
+            
+        Returns:
+            bool: True if item was found and deleted, False otherwise
+        """
+        for i, item in enumerate(self._items):
+            if hasattr(item, 'id') and getattr(item, 'id') == id:
+                self._items.pop(i)
+                return True
+        return False

@@ -1,5 +1,6 @@
 """Tests for the CSVRepository class."""
-# pylint: disable=redefined-outer-name, no-member
+# pylint: disable=redefined-outer-name, no-member, duplicate-code
+# code duplication in test is ok for readability
 import os
 import shutil
 from decimal import Decimal
@@ -229,3 +230,25 @@ def test_persistence(csv_file_path, test_calculations):
 
     repo3 = CSVRepository(file_path=csv_file_path)
     assert len(repo3.get_all()) == len(test_calculations) + 1
+
+
+def test_delete(populated_repository):
+    """Test deleting a specific calculation from the repository."""
+    initial_calculation_count = len(populated_repository.get_all())
+    delete_result = populated_repository.delete("2")
+    remaining_calculations = populated_repository.get_all()
+
+    assert delete_result is True
+    assert len(remaining_calculations) == initial_calculation_count - 1
+    assert all(calc.id != "2" for calc in remaining_calculations)
+    assert any(calc.id == "1" for calc in remaining_calculations)
+    assert any(calc.id == "3" for calc in remaining_calculations)
+
+
+def test_delete_nonexistent(populated_repository):
+    """Test deleting a calculation that doesn't exist."""
+    initial_calculation_count = len(populated_repository.get_all())
+    delete_result = populated_repository.delete("999")
+
+    assert delete_result is False
+    assert len(populated_repository.get_all()) == initial_calculation_count

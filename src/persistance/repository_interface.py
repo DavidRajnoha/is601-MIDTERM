@@ -15,3 +15,5 @@ class RepositoryInterface(Generic[T]):
     def filter(self, predicate: Callable[[T], bool]) -> List[T]: pass
 
     def clear(self) -> None: pass
+    
+    def delete(self, id: str) -> bool: pass

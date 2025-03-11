@@ -3,6 +3,9 @@ Fixtures for command tests.
 """
 # pylint: disable=redefined-outer-name
 
+from decimal import Decimal
+from typing import Callable
+
 import importlib
 import inspect
 from unittest import mock
@@ -109,3 +112,51 @@ def mock_command_discovery():
             "greet_class": MockGreetCommand,
             "exit_class": MockExitCommand,
         }
+
+
+@pytest.fixture
+def add_operation() -> Callable[[Decimal, Decimal], Decimal]:
+    """Return a function that adds two Decimal numbers."""
+
+    def add(a: Decimal, b: Decimal) -> Decimal:
+        """Return the sum of two Decimal numbers."""
+        return a + b
+
+    return add
+
+
+@pytest.fixture
+def subtract_operation() -> Callable[[Decimal, Decimal], Decimal]:
+    """Return a function that subtracts two Decimal numbers."""
+
+    def subtract(a: Decimal, b: Decimal) -> Decimal:
+        """Return the difference of two Decimal numbers."""
+        return a - b
+
+    return subtract
+
+
+@pytest.fixture
+def multiply_operation() -> Callable[[Decimal, Decimal], Decimal]:
+    """Return a function that multiplies two Decimal numbers."""
+
+    def multiply(a: Decimal, b: Decimal) -> Decimal:
+        """Return the product of two Decimal numbers."""
+        return a * b
+
+    return multiply
+
+
+@pytest.fixture
+def divide_operation() -> Callable[[Decimal, Decimal], Decimal]:
+    """Return a function that divides two Decimal numbers."""
+
+    def divide(a: Decimal, b: Decimal) -> Decimal:
+        """
+        Return the quotient of two Decimal numbers.
+
+        May raise ZeroDivisionError if b is zero.
+        """
+        return a / b
+
+    return divide

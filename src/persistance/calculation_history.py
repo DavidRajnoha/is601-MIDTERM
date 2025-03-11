@@ -49,6 +49,11 @@ class CalculationHistoryInterface(ABC):
     def clear_history(self) -> None:
         """Clear all calculation history."""
         pass
+        
+    @abstractmethod
+    def delete_calculation(self, calculation_id: str) -> bool:
+        """Delete a calculation by its ID."""
+        pass
 
 
 @singleton
@@ -142,3 +147,16 @@ class CalculationHistory(CalculationHistoryInterface):
         """Clear all calculation history."""
         logging.debug("Clearing calculation history")
         self.repository.clear()
+        
+    def delete_calculation(self, calculation_id: str) -> bool:
+        """
+        Delete a calculation from history by its ID.
+        
+        Args:
+            calculation_id: The ID of the calculation to delete
+            
+        Returns:
+            bool: True if calculation was deleted, False otherwise
+        """
+        logging.debug(f"Deleting calculation with ID: {calculation_id}")
+        return self.repository.delete(calculation_id)

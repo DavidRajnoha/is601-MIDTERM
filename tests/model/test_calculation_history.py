@@ -93,21 +93,17 @@ def calculations_by_result(create_calculation, history) -> List[Calculation]:  #
     return calculations
 
 
-# Tests
 def test_add_calculation(history, executed_calculation):  # pylint: disable=redefined-outer-name
     """Test adding a calculation to the history."""
-    # Add calculation to history
     history.add_calculation(executed_calculation)
 
-    # Verify it's in the history
     assert len(history.get_all_calculations()) == 1
     assert history.get_last_calculation() == executed_calculation
 
 
 def test_get_all_calculations(history, standard_calculations):  # pylint: disable=redefined-outer-name
     """Test getting all calculations from history."""
-    # Verify standard_calculations were properly added to history
-    assert len(standard_calculations) == 3  # Use standard_calculations to satisfy pylint
+    assert len(standard_calculations) == 3
     calculations = history.get_all_calculations()
     assert len(calculations) == 3
     assert calculations[0].result == Decimal('3')  # 1 + 2
@@ -194,13 +190,11 @@ def test_filter_calculations_by_result(history, calculations_by_result):  # pyli
 
 def test_clear_history(history, create_calculation):  # pylint: disable=redefined-outer-name
     """Test clearing all calculation history."""
-    # Add some calculations
     history.add_calculation(create_calculation(add, 1, 2))
     history.add_calculation(create_calculation(subtract, 10, 4))
 
     assert len(history.get_all_calculations()) == 2
 
-    # Clear history
     history.clear_history()
     assert len(history.get_all_calculations()) == 0
     assert history.get_last_calculation() is None

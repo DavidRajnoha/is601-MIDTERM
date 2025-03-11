@@ -132,3 +132,28 @@ class CSVRepository(RepositoryInterface[Calculation]):
         logging.debug("Clearing CSV repository")
         self._df = pd.DataFrame()
         self._save_to_csv()
+        
+    def delete(self, id: str) -> bool:
+        """
+        Delete an item from the repository by its ID.
+        
+        Args:
+            id: The ID of the item to delete
+            
+        Returns:
+            bool: True if item was found and deleted, False otherwise
+        """
+        if self._df.empty:
+            return False
+            
+        initial_len = len(self._df)
+        self._df = self._df[self._df['id'] != id]
+        
+        # Check if any rows were deleted
+        deleted = len(self._df) < initial_len
+        
+        if deleted:
+            logging.debug(f"Deleted item with ID {id} from CSV repository")
+            self._save_to_csv()
+            
+        return deleted
