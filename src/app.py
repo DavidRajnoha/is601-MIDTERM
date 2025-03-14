@@ -51,9 +51,9 @@ class App:
             try:
                 command = input("Enter a command: ")
                 self.command_handler.handle(command)
-            except (ExitException, EOFError):
+            except (ExitException, EOFError, KeyboardInterrupt):
                 logging.info("Exiting the application.")
-                print("Exiting the application...")
+                print("\nExiting the application...")
                 break
 
 
