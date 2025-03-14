@@ -1,48 +1,43 @@
 """Tests for history-related commands."""
 # pylint: disable=redefined-outer-name
+from unittest.mock import patch
 
 from src.command.commands.deletehistory import DeleteHistoryCommand
+from src.exceptions.calculation_exceptions import  CalculationNotFoundError
 
 
-def test_delete_history_command_with_input(mock_history, mock_calculations, monkeypatch):
+def test_delete_history_command_with_input(mock_history):
     """Test delete history command with ID provided via user input."""
-    mock_history.get_calculation_by_id.return_value = mock_calculations[0]
-    mock_history.delete_calculation.return_value = True
+    # Set up the mocks
+    mock_history.delete_calculation.return_value = None  # No return needed with EAFP
 
-    # Mock the input function to return "calc1"
-    monkeypatch.setattr('builtins.input', lambda _: "calc1")
+    with patch('builtins.input', return_value="calc1"):
+        command = DeleteHistoryCommand(mock_history)
+        result = command.execute()
 
-    command = DeleteHistoryCommand(mock_history)
-    result = command.execute()
-
-    mock_history.get_calculation_by_id.assert_called_once_with("calc1")
     mock_history.delete_calculation.assert_called_once_with("calc1")
     assert "has been deleted" in result
 
 
-def test_delete_history_command_empty_input(mock_history, monkeypatch):
+def test_delete_history_command_empty_input(mock_history):
     """Test delete history command with empty input."""
-    # Mock the input function to return an empty string
-    monkeypatch.setattr('builtins.input', lambda _: "")
+    with patch('builtins.input', return_value=""):
+        command = DeleteHistoryCommand(mock_history)
+        result = command.execute()
 
-    command = DeleteHistoryCommand(mock_history)
-    result = command.execute()
-
-    assert "error" in result.lower()
+    assert "Error" in result
     assert "provide" in result.lower()
     mock_history.delete_calculation.assert_not_called()
 
 
-def test_delete_history_command_not_found(mock_history, monkeypatch):
+def test_delete_history_command_not_found(mock_history):
     """Test delete history command with ID that doesn't exist."""
-    mock_history.get_calculation_by_id.return_value = None
+    mock_history.delete_calculation.side_effect = CalculationNotFoundError("nonexistent_id")
 
-    command = DeleteHistoryCommand(mock_history)
+    with patch('builtins.input', return_value="nonexistent_id"):
+        command = DeleteHistoryCommand(mock_history)
+        result = command.execute()
 
-    monkeypatch.setattr('builtins.input', lambda _: "nonexistent_id")
-    result = command.execute()
-
-    assert "error" in result.lower()
-    assert "no calculation" in result.lower()
-    mock_history.get_calculation_by_id.assert_called_once_with("nonexistent_id")
-    mock_history.delete_calculation.assert_not_called()
+    assert "Error" in result
+    assert "No calculation" in result
+    mock_history.delete_calculation.assert_called_once_with("nonexistent_id")

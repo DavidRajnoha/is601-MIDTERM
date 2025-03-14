@@ -109,7 +109,7 @@ class TestCalculationSerialization:
             'timestamp': datetime(2023, 5, 1, 12, 0, 0).isoformat()
         }
 
-        with pytest.raises(ValueError, match="Unknown operation: unknown_operation"):
+        with pytest.raises(ValueError, match="Operation not found: unknown_operation"):
             Calculation.from_dict(data)
 
     def test_roundtrip_serialization(self):
@@ -129,14 +129,14 @@ class TestCalculationSerialization:
         assert restored.result == original.result
         assert restored.timestamp == original.timestamp
 
-    def test_from_dict_raises_key_error_when_missing_required_fields(self):
+    def test_from_dict_raises_error_when_missing_required_fields(self):
         """Test that from_dict raises KeyError when required fields are missing."""
         incomplete_data = {'operation_name': 'add'}  # Missing operands field
 
         with pytest.raises(KeyError):
             Calculation.from_dict(incomplete_data)
 
-    def test_from_dict_raises_value_error_when_operands_not_valid_decimals(self):
+    def test_from_dict_raises_error_when_operands_not_valid_decimals(self):
         """Test that from_dict raises ValueError when operands can't be converted to Decimals."""
         data_with_invalid_operands = {
             'operation_name': 'add',
@@ -148,7 +148,7 @@ class TestCalculationSerialization:
         with pytest.raises(ValueError):
             Calculation.from_dict(data_with_invalid_operands)
 
-    def test_from_dict_raises_value_error_when_timestamp_invalid(self):
+    def test_from_dict_raises_error_when_timestamp_invalid(self):
         """Test that from_dict creates a default timestamp when timestamp format is invalid."""
         data_with_invalid_timestamp = {
             'operation_name': 'add',

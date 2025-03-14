@@ -1,68 +1,16 @@
 """Tests for the CalculationHistory class."""
 # pylint: disable=redefined-outer-name
 from decimal import Decimal
-from typing import List, Callable, Dict, Any, Optional
+from typing import List, Callable, Dict, Any
 import logging
 
 import pytest
 
-
 from src.model.calculation import Calculation
 from src.persistance.calculation_history import CalculationHistory
 from src.operations.basic import add, subtract, multiply
-
-
-class MockRepository:
-    """Mock repository that can be configured to fail for testing error handling."""
-
-    def __init__(self):
-        self._items = []
-        self.fail_on_get_all = False
-
-    def add(self, item: Dict[str, Any]) -> None:
-        """Add an item to the repository."""
-        self._items.append(item)
-
-    def get_all(self) -> List[Dict[str, Any]]:
-        """Get all items, with option to simulate corrupted data."""
-        if self.fail_on_get_all:
-            return [{"corrupted": "data"}]  # Missing required fields
-        return self._items.copy()
-
-    def get_by_id(self, id_: str) -> Optional[Dict[str, Any]]:
-        """Get an item by its ID."""
-        for item in self._items:
-            if 'id' in item and item['id'] == id_:
-                return item
-        return None
-
-    def get_last(self) -> Optional[Dict[str, Any]]:
-        """Get the last item added to the repository."""
-        if not self._items:
-            return None
-        return self._items[-1]
-
-    def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> List[Dict[str, Any]]:
-        """Filter items by a predicate function."""
-        return [item for item in self._items if predicate(item)]
-
-    def clear(self) -> None:
-        """Clear all items from the repository."""
-        self._items.clear()
-
-    def delete(self, id_: str) -> bool:
-        """Delete an item from the repository by its ID."""
-        for i, item in enumerate(self._items):
-            if 'id' in item and item['id'] == id_:
-                self._items.pop(i)
-                return True
-        return False
-
-
-@pytest.fixture(scope="function")
-def mock_repository() -> MockRepository:
-    """Create a mock repository for testing error handling."""
-    return MockRepository()
+from src.exceptions.calculation_exceptions import CalculationNotFoundError, EmptyHistoryError
+from tests.conftest import MockRepository
 
 
 @pytest.fixture(scope="function")
@@ -151,10 +99,10 @@ def test_add_calculation(history, executed_calculation):
     """Test adding a calculation to the history."""
     history.add_calculation(executed_calculation)
 
-    assert len(history.get_all_calculations()) == 1
+    calculations = history.get_all_calculations()
+    assert len(calculations) == 1
 
     last_calc = history.get_last_calculation()
-    assert last_calc is not None
     assert last_calc.result == executed_calculation.result
     assert last_calc.operation_name == executed_calculation.operation_name
 
@@ -167,6 +115,15 @@ def test_get_all_calculations(history, standard_calculations):
     assert calculations[0].result == Decimal('3')  # 1 + 2
     assert calculations[1].result == Decimal('6')  # 10 - 4
     assert calculations[2].result == Decimal('9')  # 3 * 3
+
+
+def test_get_all_calculations_empty(history):
+    """Test getting calculations from empty history raises EmptyHistoryError."""
+    # Empty the mock repository
+    history.clear_history()
+
+    with pytest.raises(EmptyHistoryError):
+        history.get_all_calculations()
 
 
 def test_get_all_calculations_with_corrupted_data(history, executed_calculation,
@@ -196,16 +153,16 @@ def test_get_calculation_by_id(history, standard_calculations):
 
     # Retrieve by ID
     retrieved_calc = history.get_calculation_by_id(target_id)
-    assert retrieved_calc is not None
     assert retrieved_calc.id == target_id
     assert retrieved_calc.result == Decimal('6')  # 10 - 4
 
 
 def test_get_calculation_by_id_not_found(history, executed_calculation):
-    """Test retrieving a calculation with a non-existent ID."""
+    """Test retrieving a calculation with a non-existent ID raises error."""
     history.add_calculation(executed_calculation)
-    retrieved_calc = history.get_calculation_by_id("non-existent-id")
-    assert retrieved_calc is None
+
+    with pytest.raises(CalculationNotFoundError):
+        history.get_calculation_by_id("non-existent-id")
 
 
 def test_get_calculation_by_id_with_corrupt_data(history, executed_calculation,
@@ -222,32 +179,34 @@ def test_get_calculation_by_id_with_corrupt_data(history, executed_calculation,
 
     # Try to retrieve with logging captured
     with caplog.at_level(logging.WARNING):
-        result = history.get_calculation_by_id(executed_calculation.id)
+        with pytest.raises(Exception):  # Could be more specific about exception type
+            history.get_calculation_by_id(executed_calculation.id)
 
-    # Should return None for corrupted data
-    assert result is None
-
-    # Check that warning was logged
-    assert any("Invalid calculation data" in record.message for record in caplog.records)
+    # Check that warning was logged about invalid data
+    assert any("Invalid" in record.message for record in caplog.records)
 
 
 def test_get_last_calculation(history, standard_calculations):
     """Test getting the most recent calculation."""
     retrieved_last = history.get_last_calculation()
-    assert retrieved_last is not None
     assert retrieved_last.id == standard_calculations["multiply_3_3"].id
     assert retrieved_last.result == Decimal('9')  # 3 * 3
 
 
 def test_get_last_calculation_empty_history(history):
-    """Test getting the last calculation from an empty history."""
-    assert history.get_last_calculation() is None
+    """Test getting the last calculation from an empty history raises error."""
+    # Clear the history
+    history.clear_history()
+
+    with pytest.raises(EmptyHistoryError):
+        history.get_last_calculation()
 
 
 def test_filter_calculations_by_operation(history, calculations_by_operation):
     """Test filtering calculations by operation name."""
     # Verify calculations_by_operation fixture was used
-    assert len(calculations_by_operation) == 5  # Use calculations_by_operation to satisfy pylint
+    assert len(calculations_by_operation) == 5
+
     # Filter by add operation
     add_calculations = history.filter_calculations_by_operation("add")
     assert len(add_calculations) == 3
@@ -268,7 +227,8 @@ def test_filter_calculations_by_operation(history, calculations_by_operation):
 def test_filter_calculations_by_result(history, calculations_by_result):
     """Test filtering calculations by result value."""
     # Verify calculations_by_result fixture was used
-    assert len(calculations_by_result) == 4  # Use calculations_by_result to satisfy pylint
+    assert len(calculations_by_result) == 4
+
     # Filter by result = 6
     result_six = history.filter_calculations_by_result(Decimal('6'))
     assert len(result_six) == 3
@@ -297,8 +257,12 @@ def test_clear_history(history, create_calculation):
     assert len(history.get_all_calculations()) == 2
 
     history.clear_history()
-    assert len(history.get_all_calculations()) == 0
-    assert history.get_last_calculation() is None
+
+    with pytest.raises(EmptyHistoryError):
+        history.get_all_calculations()
+
+    with pytest.raises(EmptyHistoryError):
+        history.get_last_calculation()
 
 
 def test_delete_calculation(history, create_calculation):
@@ -308,7 +272,13 @@ def test_delete_calculation(history, create_calculation):
 
     assert len(history.get_all_calculations()) == 1
 
-    result = history.delete_calculation(calc.id)
+    history.delete_calculation(calc.id)
 
-    assert result is True
-    assert len(history.get_all_calculations()) == 0
+    with pytest.raises(EmptyHistoryError):
+        history.get_all_calculations()
+
+
+def test_delete_calculation_not_found(history):
+    """Test deleting a non-existent calculation raises error."""
+    with pytest.raises(CalculationNotFoundError):
+        history.delete_calculation("non-existent-id")

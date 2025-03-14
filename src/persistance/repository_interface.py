@@ -1,5 +1,5 @@
 """Generic repository interface definition."""
-from typing import Generic, TypeVar, List, Optional, Callable, Dict, Any
+from typing import Generic, TypeVar, List, Callable, Dict, Any
 
 # Use Dict[str, Any] as the base type for all repositories
 # This makes repositories store generic dictionaries rather than specific objects
@@ -12,6 +12,9 @@ class RepositoryInterface(Generic[T]):
 
     Repositories store and retrieve items as dictionaries,
     with no knowledge of the specific object types they represent.
+
+    This interface follows the EAFP (Easier to Ask for Forgiveness than Permission) pattern.
+    Methods raise appropriate exceptions when operations fail, rather than returning None or False.
     """
 
     def add(self, item: T) -> None:
@@ -20,6 +23,9 @@ class RepositoryInterface(Generic[T]):
 
         Args:
             item: The item to add
+
+        Raises:
+            RepositoryIOError: If the item cannot be added due to I/O errors
         """
         pass
 
@@ -29,10 +35,14 @@ class RepositoryInterface(Generic[T]):
 
         Returns:
             A list of all items in the repository
+
+        Raises:
+            EmptyRepositoryError: If the repository is empty
+            RepositoryIOError: If items cannot be retrieved due to I/O errors
         """
         pass
 
-    def get_by_id(self, id: str) -> Optional[T]:
+    def get_by_id(self, id: str) -> T:
         """
         Get an item by its ID.
 
@@ -40,16 +50,24 @@ class RepositoryInterface(Generic[T]):
             id: The ID of the item to retrieve
 
         Returns:
-            The item if found, None otherwise
+            The item if found
+
+        Raises:
+            ItemNotFoundError: If no item with the given ID exists
+            RepositoryIOError: If the item cannot be retrieved due to I/O errors
         """
         pass
 
-    def get_last(self) -> Optional[T]:
+    def get_last(self) -> T:
         """
         Get the last item added to the repository.
 
         Returns:
-            The last item if repository is not empty, None otherwise
+            The last item
+
+        Raises:
+            EmptyRepositoryError: If the repository is empty
+            RepositoryIOError: If the item cannot be retrieved due to I/O errors
         """
         pass
 
@@ -62,21 +80,30 @@ class RepositoryInterface(Generic[T]):
 
         Returns:
             A list of items for which the predicate returns True
+
+        Raises:
+            RepositoryIOError: If items cannot be filtered due to I/O errors
         """
         pass
 
     def clear(self) -> None:
-        """Clear all items from the repository."""
+        """
+        Clear all items from the repository.
+
+        Raises:
+            RepositoryIOError: If items cannot be cleared due to I/O errors
+        """
         pass
 
-    def delete(self, id: str) -> bool:
+    def delete(self, id: str) -> None:
         """
         Delete an item from the repository by its ID.
 
         Args:
             id: The ID of the item to delete
 
-        Returns:
-            bool: True if item was found and deleted, False otherwise
+        Raises:
+            ItemNotFoundError: If no item with the given ID exists
+            RepositoryIOError: If the item cannot be deleted due to I/O errors
         """
         pass

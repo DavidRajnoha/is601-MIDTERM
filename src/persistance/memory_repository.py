@@ -1,9 +1,14 @@
 """In-memory repository implementation."""
-from typing import List, Optional, Callable, Dict, Any
+import logging
+from typing import List, Callable, Dict, Any
 
-from src.core.logging_decorator import log_method, log_class
+from src.core.logging_decorator import log_class
 from src.core.singleton import singleton
 from src.persistance.repository_interface import RepositoryInterface
+from src.exceptions.repository_exceptions import (
+    ItemNotFoundError,
+    EmptyRepositoryError
+)
 
 
 @singleton
@@ -12,6 +17,9 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
     """
     In-memory implementation of the repository interface.
     Stores dictionaries in a list, with no knowledge of specific object types.
+
+    Implements EAFP (Easier to Ask for Forgiveness than Permission) pattern by
+    raising exceptions rather than returning None or False values.
     """
 
     def __init__(self):
@@ -26,6 +34,7 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
             item: The dictionary to add
         """
         self._items.append(item)
+        logging.debug(f"Added item with ID {item.get('id')} to memory repository")
 
     def get_all(self) -> List[Dict[str, Any]]:
         """
@@ -33,10 +42,16 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
 
         Returns:
             A list of all items in the repository
+
+        Raises:
+            EmptyRepositoryError: If the repository is empty
         """
+        if not self._items:
+            raise EmptyRepositoryError()
+
         return self._items.copy()
 
-    def get_by_id(self, id: str) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, id: str) -> Dict[str, Any]:
         """
         Get an item by its ID.
 
@@ -44,22 +59,30 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
             id: The ID of the item to retrieve
 
         Returns:
-            The item if found, None otherwise
+            The item if found
+
+        Raises:
+            ItemNotFoundError: If no item with the given ID exists
         """
         for item in self._items:
             if 'id' in item and item['id'] == id:
                 return item
-        return None
 
-    def get_last(self) -> Optional[Dict[str, Any]]:
+        raise ItemNotFoundError(id)
+
+    def get_last(self) -> Dict[str, Any]:
         """
         Get the last item added to the repository.
 
         Returns:
-            The last item if repository is not empty, None otherwise
+            The last item
+
+        Raises:
+            EmptyRepositoryError: If the repository is empty
         """
         if not self._items:
-            return None
+            raise EmptyRepositoryError()
+
         return self._items[-1]
 
     def filter(self, predicate: Callable[[Dict[str, Any]], bool]) -> List[Dict[str, Any]]:
@@ -72,24 +95,29 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
         Returns:
             A list of items for which the predicate returns True
         """
+        # Filter returns an empty list if no matches instead of raising an exception
+        # since an empty result is a valid outcome for filtering
         return [item for item in self._items if predicate(item)]
 
     def clear(self) -> None:
         """Clear all items from the repository."""
         self._items.clear()
+        logging.debug("Cleared memory repository")
 
-    def delete(self, id: str) -> bool:
+    def delete(self, id: str) -> None:
         """
         Delete an item from the repository by its ID.
 
         Args:
             id: The ID of the item to delete
 
-        Returns:
-            bool: True if item was found and deleted, False otherwise
+        Raises:
+            ItemNotFoundError: If no item with the given ID exists
         """
         for i, item in enumerate(self._items):
             if 'id' in item and item['id'] == id:
                 self._items.pop(i)
-                return True
-        return False
+                logging.debug(f"Deleted item with ID {id} from memory repository")
+                return
+
+        raise ItemNotFoundError(id)

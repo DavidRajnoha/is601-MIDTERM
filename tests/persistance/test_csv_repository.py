@@ -1,12 +1,12 @@
 """Tests for the CSVRepository class."""
 # pylint: disable=redefined-outer-name, no-member, duplicate-code
-# code duplication in test is ok for readability
 import os
 import shutil
 from datetime import datetime
 import pytest
 
 from src.persistance.csv_repository import CSVRepository
+from src.exceptions.repository_exceptions import ItemNotFoundError, EmptyRepositoryError
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -116,31 +116,36 @@ def test_get_all(populated_repository, test_items):
         assert result in results
 
 
+def test_get_all_empty_repository(empty_repository):
+    """Test getting all items from an empty repository raises exception."""
+    with pytest.raises(EmptyRepositoryError):
+        empty_repository.get_all()
+
+
 def test_get_by_id(populated_repository, test_items):
     """Test getting an item by ID."""
     item = populated_repository.get_by_id("2")
-    assert item is not None
     assert item['id'] == "2"
     assert item['result'] == test_items[1]['result']
 
 
 def test_get_by_id_not_found(populated_repository):
-    """Test getting an item by ID when the ID doesn't exist."""
-    item = populated_repository.get_by_id("999")
-    assert item is None
+    """Test getting an item by ID when the ID doesn't exist raises exception."""
+    with pytest.raises(ItemNotFoundError):
+        populated_repository.get_by_id("999")
 
 
 def test_get_last(populated_repository, test_items):
     """Test getting the last item in the repository."""
     last_item = populated_repository.get_last()
-    assert last_item is not None
     assert last_item['id'] == "3"  # The last test item
     assert last_item['result'] == test_items[2]['result']
 
 
 def test_get_last_empty_repository(empty_repository):
-    """Test getting the last item from an empty repository."""
-    assert empty_repository.get_last() is None
+    """Test getting the last item from an empty repository raises exception."""
+    with pytest.raises(EmptyRepositoryError):
+        empty_repository.get_last()
 
 
 def test_filter(populated_repository):
@@ -153,12 +158,22 @@ def test_filter(populated_repository):
     assert filtered_items[0]['result'] == "42"
 
 
+def test_filter_empty_repository(empty_repository):
+    """Test filtering on an empty repository returns empty list."""
+    filtered = empty_repository.filter(lambda _: True)
+    assert filtered == []
+
+
 def test_clear(populated_repository):
     """Test clearing the repository."""
     assert len(populated_repository.get_all()) == 3
     populated_repository.clear()
-    assert len(populated_repository.get_all()) == 0
-    assert populated_repository.get_last() is None
+
+    with pytest.raises(EmptyRepositoryError):
+        populated_repository.get_all()
+
+    with pytest.raises(EmptyRepositoryError):
+        populated_repository.get_last()
 
 
 def test_persistence(csv_file_path, test_items):
@@ -186,21 +201,18 @@ def test_persistence(csv_file_path, test_items):
 
 def test_delete(populated_repository):
     """Test deleting a specific item from the repository."""
-    initial_item_count = len(populated_repository.get_all())
-    delete_result = populated_repository.delete("2")
+    initial_count = len(populated_repository.get_all())
+
+    populated_repository.delete("2")
     remaining_items = populated_repository.get_all()
 
-    assert delete_result is True
-    assert len(remaining_items) == initial_item_count - 1
+    assert len(remaining_items) == initial_count - 1
     assert all(item['id'] != "2" for item in remaining_items)
     assert any(item['id'] == "1" for item in remaining_items)
     assert any(item['id'] == "3" for item in remaining_items)
 
 
 def test_delete_nonexistent(populated_repository):
-    """Test deleting an item that doesn't exist."""
-    initial_item_count = len(populated_repository.get_all())
-    delete_result = populated_repository.delete("999")
-
-    assert delete_result is False
-    assert len(populated_repository.get_all()) == initial_item_count
+    """Test deleting an item that doesn't exist raises exception."""
+    with pytest.raises(ItemNotFoundError):
+        populated_repository.delete("999")

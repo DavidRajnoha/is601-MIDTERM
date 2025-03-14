@@ -1,18 +1,10 @@
 """Tests for history-related commands."""
 # pylint: disable=redefined-outer-name
-
 from src.command.commands.history import HistoryCommand
+from src.exceptions.calculation_exceptions import EmptyHistoryError
 
 
 
-def test_history_command_empty(mock_history):
-    """Test history command when there are no calculations."""
-
-    command = HistoryCommand(mock_history)
-    result = command.execute()
-
-    assert "empty" in result.lower()
-    mock_history.get_all_calculations.assert_called_once()
 
 
 def test_history_command_with_data(mock_history, mock_calculations):
@@ -26,3 +18,14 @@ def test_history_command_with_data(mock_history, mock_calculations):
     assert "Calculation History" in result
     assert "calc1" in result
     assert "calc2" in result
+
+
+def test_history_command_empty(mock_history):
+    """Test history command when there are no calculations."""
+    mock_history.get_all_calculations.side_effect = EmptyHistoryError()
+
+    command = HistoryCommand(mock_history)
+    result = command.execute()
+
+    assert "empty" in result.lower()
+    mock_history.get_all_calculations.assert_called_once()

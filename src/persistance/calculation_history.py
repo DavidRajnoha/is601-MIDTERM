@@ -1,15 +1,24 @@
 """Module containing the CalculationHistory class for storing calculation history."""
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional, Callable, Dict, Any
+from typing import List, Optional, Dict, Any
 from decimal import Decimal
 
 from src.core.logging_decorator import log_class
 from src.core.singleton import singleton
 from src.model.calculation import Calculation
 from src.persistance.csv_repository import CSVRepository
-from src.persistance.memory_repository import MemoryRepository
 from src.persistance.repository_interface import RepositoryInterface
+from src.exceptions.calculation_exceptions import (
+    CalculationNotFoundError,
+    EmptyHistoryError,
+    InvalidCalculationDataError
+)
+from src.exceptions.repository_exceptions import (
+    ItemNotFoundError,
+    EmptyRepositoryError,
+    RepositoryIOError
+)
 
 
 class CalculationHistoryInterface(ABC):
@@ -26,12 +35,12 @@ class CalculationHistoryInterface(ABC):
         pass
 
     @abstractmethod
-    def get_calculation_by_id(self, calculation_id: str) -> Optional[Calculation]:
+    def get_calculation_by_id(self, calculation_id: str) -> Calculation:
         """Get a calculation by its ID."""
         pass
 
     @abstractmethod
-    def get_last_calculation(self) -> Optional[Calculation]:
+    def get_last_calculation(self) -> Calculation:
         """Get the most recent calculation."""
         pass
 
@@ -51,7 +60,7 @@ class CalculationHistoryInterface(ABC):
         pass
 
     @abstractmethod
-    def delete_calculation(self, calculation_id: str) -> bool:
+    def delete_calculation(self, calculation_id: str) -> None:
         """Delete a calculation by its ID."""
         pass
 
@@ -67,17 +76,14 @@ class CalculationHistory(CalculationHistoryInterface):
     and their dictionary representation used by repositories.
     """
 
-    def __init__(self, repository = None):
+    def __init__(self, repository: RepositoryInterface[Dict[str, Any]] = None):
         """
         Initialize the calculation history with a repository.
 
         Args:
             repository: An existing repository instance
         """
-        if repository is not None:
-            self.repository = repository
-        else:
-            self.repository = CSVRepository()
+        self.repository = repository if repository is not None else CSVRepository()
 
     def add_calculation(self, calculation: Calculation) -> None:
         """
@@ -85,10 +91,17 @@ class CalculationHistory(CalculationHistoryInterface):
 
         Args:
             calculation: The calculation to add, which should already be executed
+
+        Raises:
+            RepositoryIOError: If there's an error adding the calculation to the repository
         """
         logging.debug(f"Adding calculation to history: {calculation}")
-        calculation_dict = Calculation.to_dict(calculation)
-        self.repository.add(calculation_dict)
+        try:
+            calculation_dict = Calculation.to_dict(calculation)
+            self.repository.add(calculation_dict)
+        except RepositoryIOError as e:
+            logging.error(f"Error adding calculation to history: {e}")
+            raise
 
     def get_all_calculations(self) -> List[Calculation]:
         """
@@ -96,20 +109,30 @@ class CalculationHistory(CalculationHistoryInterface):
 
         Returns:
             A list of all valid calculations, skipping any with serialization errors
+
+        Raises:
+            EmptyHistoryError: If the history is empty
         """
-        calculation_dicts = self.repository.get_all()
-        result = []
+        try:
+            calculation_dicts = self.repository.get_all()
+            result = []
 
-        for calc_dict in calculation_dicts:
-            try:
-                calculation = Calculation.from_dict(calc_dict)
-                result.append(calculation)
-            except (ValueError, KeyError) as e:
-                logging.warning(f"Skipping invalid calculation: {e}")
+            for calc_dict in calculation_dicts:
+                try:
+                    calculation = Calculation.from_dict(calc_dict)
+                    result.append(calculation)
+                except (ValueError, KeyError) as e:
+                    logging.warning(f"Skipping invalid calculation: {e}")
 
-        return result
+            return result
 
-    def get_calculation_by_id(self, calculation_id: str) -> Optional[Calculation]:
+        except EmptyRepositoryError:
+            raise EmptyHistoryError()
+        except RepositoryIOError as e:
+            logging.error(f"Error retrieving calculations: {e}")
+            raise
+
+    def get_calculation_by_id(self, calculation_id: str) -> Calculation:
         """
         Get a calculation by its ID.
 
@@ -117,34 +140,51 @@ class CalculationHistory(CalculationHistoryInterface):
             calculation_id: The ID of the calculation to retrieve
 
         Returns:
-            The calculation if found and valid, None otherwise
+            The calculation if found and valid
+
+        Raises:
+            CalculationNotFoundError: If no calculation with the given ID exists
+            InvalidCalculationDataError: If the calculation data is invalid
         """
-        calc_dict = self.repository.get_by_id(calculation_id)
-        if calc_dict is None:
-            return None
-
         try:
-            return Calculation.from_dict(calc_dict)
-        except (ValueError, KeyError) as e:
-            logging.warning(f"Invalid calculation data for ID {calculation_id}: {e}")
-            return None
+            calc_dict = self.repository.get_by_id(calculation_id)
 
-    def get_last_calculation(self) -> Optional[Calculation]:
+            try:
+                return Calculation.from_dict(calc_dict)
+            except (ValueError, KeyError) as e:
+                logging.warning(f"Invalid calculation data: {e}")
+                raise InvalidCalculationDataError(calculation_id, e)
+
+        except ItemNotFoundError:
+            raise CalculationNotFoundError(calculation_id)
+        except RepositoryIOError as e:
+            logging.error(f"Error retrieving calculation {calculation_id}: {e}")
+            raise
+
+    def get_last_calculation(self) -> Calculation:
         """
         Get the most recent calculation.
 
         Returns:
-            The last calculation added to the history, or None if history is empty
-        """
-        calc_dict = self.repository.get_last()
-        if calc_dict is None:
-            return None
+            The last calculation added to the history
 
+        Raises:
+            EmptyHistoryError: If the history is empty
+            InvalidCalculationDataError: If the calculation data is invalid
+        """
         try:
-            return Calculation.from_dict(calc_dict)
-        except (ValueError, KeyError) as e:
-            logging.warning(f"Invalid data for last calculation: {e}")
-            return None
+            calc_dict = self.repository.get_last()
+
+            try:
+                return Calculation.from_dict(calc_dict)
+            except (ValueError, KeyError) as e:
+                raise InvalidCalculationDataError(error=e)
+
+        except EmptyRepositoryError:
+            raise EmptyHistoryError()
+        except RepositoryIOError as e:
+            logging.error(f"Error retrieving last calculation: {e}")
+            raise
 
     def filter_calculations_by_operation(self, operation_name: str) -> List[Calculation]:
         """
@@ -156,11 +196,17 @@ class CalculationHistory(CalculationHistoryInterface):
         Returns:
             A list of calculations with the specified operation name
         """
-        all_calculations = self.get_all_calculations()
-        return [
-            calc for calc in all_calculations
-            if calc.operation_name == operation_name
-        ]
+        try:
+            all_calculations = self.get_all_calculations()
+            return [
+                calc for calc in all_calculations
+                if calc.operation_name == operation_name
+            ]
+        except EmptyHistoryError:
+            return []
+        except RepositoryIOError as e:
+            logging.error(f"Error filtering calculations: {e}")
+            raise
 
     def filter_calculations_by_result(self, result: Decimal) -> List[Calculation]:
         """
@@ -172,26 +218,48 @@ class CalculationHistory(CalculationHistoryInterface):
         Returns:
             A list of calculations with the specified result
         """
-        all_calculations = self.get_all_calculations()
-        return [
-            calc for calc in all_calculations
-            if calc.result == result
-        ]
-        
+        try:
+            all_calculations = self.get_all_calculations()
+            return [
+                calc for calc in all_calculations
+                if calc.result == result
+            ]
+        except EmptyHistoryError:
+            return []
+        except RepositoryIOError as e:
+            logging.error(f"Error filtering calculations: {e}")
+            raise
+
     def clear_history(self) -> None:
-        """Clear all calculation history."""
+        """
+        Clear all calculation history.
+
+        Raises:
+            RepositoryIOError: If there's an error clearing the history
+        """
         logging.debug("Clearing calculation history")
-        self.repository.clear()
-        
-    def delete_calculation(self, calculation_id: str) -> bool:
+        try:
+            self.repository.clear()
+        except RepositoryIOError as e:
+            logging.error(f"Error clearing history: {e}")
+            raise
+
+    def delete_calculation(self, calculation_id: str) -> None:
         """
         Delete a calculation from history by its ID.
-        
+
         Args:
             calculation_id: The ID of the calculation to delete
-            
-        Returns:
-            bool: True if calculation was deleted, False otherwise
+
+        Raises:
+            CalculationNotFoundError: If no calculation with the given ID exists
+            RepositoryIOError: If there's an error deleting the calculation
         """
         logging.debug(f"Deleting calculation with ID: {calculation_id}")
-        return self.repository.delete(calculation_id)
+        try:
+            self.repository.delete(calculation_id)
+        except ItemNotFoundError:
+            raise CalculationNotFoundError(calculation_id)
+        except RepositoryIOError as e:
+            logging.error(f"Error deleting calculation {calculation_id}: {e}")
+            raise

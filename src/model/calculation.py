@@ -83,10 +83,10 @@ class Calculation:
 
         operation_name = data['operation_name']
 
-        if operation_name not in operation_registry:
-            raise ValueError(f"Unknown operation: {operation_name}")
-
-        operation = operation_registry[operation_name]
+        try:
+            operation = operation_registry[operation_name]
+        except KeyError:
+            raise ValueError(f"Operation not found: {operation_name}")
 
         calc = cls(operation, *operands)
         calc.id = data['id']

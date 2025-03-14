@@ -16,21 +16,28 @@ def singleton(cls):
         :param kwargs:
         :return:
         """
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        elif args or kwargs:
-            # If the singleton exists but constructor args provided, update instance
-            if hasattr(instances[cls], 'configure'):
-                instances[cls].configure(*args, **kwargs)
-        return instances[cls]
+        try:
+            instance = instances[cls]
+            if args or kwargs:
+                try:
+                    instance.configure(*args, **kwargs)
+                except AttributeError:
+                    pass
+        except KeyError:
+            instance = cls(*args, **kwargs)
+            instances[cls] = instance
+
+        return instance
 
     @log_method
     def reset_instance():
         """
         Resets the instance of the singleton class.
         """
-        if cls in instances:
+        try:
             del instances[cls]
+        except KeyError:
+            pass
 
     # Make get_instance look like the original class
     get_instance.__name__ = cls.__name__
