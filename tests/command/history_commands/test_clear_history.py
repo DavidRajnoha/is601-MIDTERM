@@ -1,7 +1,7 @@
 """Tests for history-related commands."""
 # pylint: disable=redefined-outer-name
 
-from src.command.commands.clearhistory import ClearHistoryCommand
+from src.command.commands.clear_history import ClearHistoryCommand
 
 
 def test_clear_history_command(mock_history):

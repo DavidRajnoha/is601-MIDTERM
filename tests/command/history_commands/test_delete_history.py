@@ -2,7 +2,7 @@
 # pylint: disable=redefined-outer-name
 from unittest.mock import patch
 
-from src.command.commands.deletehistory import DeleteHistoryCommand
+from src.command.commands.delete_history import DeleteHistoryCommand
 from src.exceptions.calculation_exceptions import  CalculationNotFoundError
 
 
