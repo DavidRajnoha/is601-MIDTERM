@@ -31,6 +31,6 @@ class DeleteHistoryCommand(Command):
         except InvalidCalculationDataError as e:
             result = f"Error: {str(e)}"
 
-        logging.info(result)
+        self.logger.debug(result)
         print(result)
         return result

@@ -20,15 +20,15 @@ class CommandHandler:
         """Dynamically discover and register all commands in the 'src.command.commands' package."""
         commands_registered = 0
         for _, module_name, _ in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
-            logging.debug(f"Loading commands from {module_name}")
+            self.logger.debug(f"Loading commands from {module_name}")
             module = importlib.import_module(module_name)
             for _, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, Command) and obj is not Command:
-                    logging.debug(f"Registering command {obj}")
+                    self.logger.debug(f"Registering command {obj}")
                     command_name = module_name.split(".")[-1]  # Extract file name as command name
                     self._register(command_name, obj())
                     commands_registered += 1
-        logging.info(f"Registered {commands_registered} commands from {package.__name__}")
+        self.logger.info(f"Registered {commands_registered} commands from {package.__name__}")
 
     def _register(self, command_name, command):
         """
@@ -42,10 +42,10 @@ class CommandHandler:
         """
         command = self._commands.get(command_name, None)
         try:
-            logging.debug(f"Executing command {command_name}")
+            self.logger.debug(f"Executing command {command_name}")
             command.execute()
         except AttributeError:
-            logging.debug(f"Command {command_name} does not have an execute method")
+            self.logger.debug(f"Command {command_name} does not have an execute method")
             self.handle_invalid_command(command_name)
 
     def handle_invalid_command(self, command_name):
@@ -56,7 +56,7 @@ class CommandHandler:
             suggested_command = self._suggest_command(command_name)
             print(f'Command "{command_name}" not found. Did you mean "{suggested_command}"?')
         except SuggestionFailed:
-            logging.debug(f"Suggestion for {command_name} failed")
+            self.logger.debug(f"Suggestion for {command_name} failed")
             print(f'Command "{command_name}" not found')
             self._commands["help"].execute()
 
@@ -73,7 +73,7 @@ class CommandHandler:
         available = self.get_commands()
         # get_close_matches returns a list; we pick the best match if available.
         matches = get_close_matches(invalid_command, available, n=1, cutoff=0.6)
-        logging.debug(f"Found {len(matches)} close matches for {invalid_command}")
+        self.logger.debug(f"Found {len(matches)} close matches for {invalid_command}")
         try:
             return matches[0]
         except IndexError:

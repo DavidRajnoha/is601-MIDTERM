@@ -43,11 +43,11 @@ class CSVRepository(RepositoryInterface[Dict[str, Any]]):
             # Initialize the dataframe or load existing data
             if os.path.exists(self.file_path) and os.path.getsize(self.file_path) > 0:
                 try:
-                    logging.debug("Loading CSV repository from file")
+                    self.logger.debug("Loading CSV repository from file")
                     self._df = pd.read_csv(self.file_path)
                 except Exception as e:
                     # If there's an error reading the file, start with empty dataframe
-                    logging.error(f"Error loading CSV repository: {e}")
+                    self.logger.error(f"Error loading CSV repository: {e}")
                     self._df = pd.DataFrame()
             else:
                 self._df = pd.DataFrame()
@@ -64,7 +64,7 @@ class CSVRepository(RepositoryInterface[Dict[str, Any]]):
         """
         directory = os.path.dirname(self.file_path)
         if directory and not os.path.exists(directory):
-            logging.debug(f"Creating directory: {directory}")
+            self.logger.debug(f"Creating directory: {directory}")
             try:
                 os.makedirs(directory)
             except Exception as e:
@@ -77,7 +77,7 @@ class CSVRepository(RepositoryInterface[Dict[str, Any]]):
         Raises:
             RepositoryIOError: If there's an error saving to the file
         """
-        logging.debug("Saving CSV repository to file")
+        self.logger.debug("Saving CSV repository to file")
         try:
             self._df.to_csv(self.file_path, index=False)
         except Exception as e:
@@ -96,7 +96,7 @@ class CSVRepository(RepositoryInterface[Dict[str, Any]]):
         try:
             new_row = pd.DataFrame([item])
             self._df = pd.concat([self._df, new_row], ignore_index=True)
-            logging.debug(f"Added item to CSV repository: {item}")
+            self.logger.debug(f"Added item to CSV repository: {item}")
 
             self._save_to_csv()
         except Exception as e:
@@ -180,7 +180,7 @@ class CSVRepository(RepositoryInterface[Dict[str, Any]]):
             RepositoryIOError: If there's an error clearing the repository or saving to CSV
         """
         try:
-            logging.debug("Clearing CSV repository")
+            self.logger.debug("Clearing CSV repository")
             self._df = pd.DataFrame()
             self._save_to_csv()
         except Exception as e:

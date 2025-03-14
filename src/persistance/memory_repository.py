@@ -34,7 +34,7 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
             item: The dictionary to add
         """
         self._items.append(item)
-        logging.debug(f"Added item with ID {item.get('id')} to memory repository")
+        self.logger.debug(f"Added item with ID {item.get('id')} to memory repository")
 
     def get_all(self) -> List[Dict[str, Any]]:
         """
@@ -102,7 +102,7 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
     def clear(self) -> None:
         """Clear all items from the repository."""
         self._items.clear()
-        logging.debug("Cleared memory repository")
+        self.logger.debug("Cleared memory repository")
 
     def delete(self, id: str) -> None:
         """
@@ -117,7 +117,7 @@ class MemoryRepository(RepositoryInterface[Dict[str, Any]]):
         for i, item in enumerate(self._items):
             if 'id' in item and item['id'] == id:
                 self._items.pop(i)
-                logging.debug(f"Deleted item with ID {id} from memory repository")
+                self.logger.debug(f"Deleted item with ID {id} from memory repository")
                 return
 
         raise ItemNotFoundError(id)

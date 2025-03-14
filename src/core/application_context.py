@@ -3,11 +3,12 @@ Module for configuring application-wide dependencies.
 """
 import logging
 
+from src.core.logging_decorator import log_class
 from src.persistance.csv_repository import CSVRepository
 from src.persistance.memory_repository import MemoryRepository
 from src.persistance.calculation_history import CalculationHistory
 
-
+@log_class
 class ApplicationContext:
     """
     Utility class for configuring application-wide dependencies.

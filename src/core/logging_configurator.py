@@ -12,12 +12,24 @@ class LoggingConfigurator:
     """
     Handles the configuration of logging for the application.
     Supports configuration from either logging.conf or environment variables.
+    
+    Users only need to set:
+    - LOG_LEVEL_CONSOLE: Level for console output (WARNING by default)
+    - LOG_LEVEL_FILE: Level for file output (DEBUG by default)
     """
 
     @staticmethod
     def configure():
         """
-        Configure logging based on either logging.conf file or environment variables.
+        Configure logging for the application.
+        
+        This method sets up logging with:
+        - Console output (WARNING level by default)
+        - File output (DEBUG level by default)
+        
+        The log level can be configured through:
+        1. A logging.conf file (if present)
+        2. Environment variables LOG_LEVEL_CONSOLE and LOG_LEVEL_FILE
         """
         # Create logs directory if it doesn't exist
         log_dir = os.getenv("LOG_DIR", "logs")
@@ -41,50 +53,71 @@ class LoggingConfigurator:
     def _configure_from_env(log_dir):
         """
         Configure logging based on environment variables.
+        
+        Users only need to set:
+        - LOG_LEVEL_CONSOLE: Level for console output
+        - LOG_LEVEL_FILE: Level for file output
+        
+        Internal loggers are automatically configured appropriately.
 
         Args:
             log_dir: Directory where log files will be stored
         """
-        root_level = os.getenv("LOG_LEVEL_ROOT", "DEBUG")
-        trace_level = os.getenv("LOG_LEVEL_TRACE", "DEBUG")
+        # User-configurable settings
         console_level = os.getenv("LOG_LEVEL_CONSOLE", "WARNING")
         file_level = os.getenv("LOG_LEVEL_FILE", "DEBUG")
         log_filename = os.path.join(log_dir, os.getenv("LOG_FILENAME", "app.log"))
-
-        # Configure root logger
+        
+        # Clear all existing handlers from the root logger
         root_logger = logging.getLogger()
-        root_logger.setLevel(getattr(logging, root_level))
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+            
+        # Set root level to the lowest of console/file to allow all messages through
+        lowest_level = min(
+            getattr(logging, console_level), 
+            getattr(logging, file_level)
+        )
+        root_logger.setLevel(lowest_level)
+        
+        # Configure internal loggers (hidden from user)
+        # These settings ensure decorator logging works as intended
+        _configure_internal_loggers()
 
-        # Configure trace logger
-        trace_logger = logging.getLogger('trace')
-        trace_logger.setLevel(getattr(logging, trace_level))
-        trace_logger.propagate = False
-
-        # Create formatter
-        formatter = logging.Formatter(
+        detailed_formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             '%Y-%m-%d %H:%M:%S'
         )
+        
+        simple_formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s',
+            '%Y-%m-%d %H:%M:%S'
+        )
 
-        # Remove any existing handlers
-        for logger in [root_logger, trace_logger]:
-            for handler in logger.handlers[:]:
-                logger.removeHandler(handler)
-
-        # File handler
+        # File handler (detailed format with class names)
         file_handler = logging.handlers.RotatingFileHandler(
             log_filename, 'a', 1048576, 5
         )
         file_handler.setLevel(getattr(logging, file_level))
-        file_handler.setFormatter(formatter)
+        file_handler.setFormatter(detailed_formatter)
+        root_logger.addHandler(file_handler)
 
-        # Console handler
+        # Console handler (simple format without class names)
         console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(getattr(logging, console_level))
-        console_handler.setFormatter(formatter)
-
-        # Add handlers to loggers
-        root_logger.addHandler(file_handler)
+        console_handler.setFormatter(simple_formatter)
         root_logger.addHandler(console_handler)
-        trace_logger.addHandler(file_handler)
-        trace_logger.addHandler(console_handler)
+
+
+def _configure_internal_loggers():
+    """
+    Configure internal loggers needed by the class decorator system.
+    This is hidden implementation detail not exposed to users.
+    """
+    # Configure trace logger for function entry/exit
+    trace_logger = logging.getLogger('trace')
+    trace_logger.propagate = True
+    
+    # Configure src logger for application classes
+    src_logger = logging.getLogger('src')
+    src_logger.propagate = True

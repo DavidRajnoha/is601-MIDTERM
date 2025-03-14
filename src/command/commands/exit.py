@@ -8,5 +8,5 @@ from src.core.logging_decorator import log_class
 class ExitCommand(Command):
     """A command that exits the application."""
     def execute(self):
-        logging.debug("Executing ExitCommand.")
+        self.logger.debug("Executing ExitCommand.")
         raise ExitException()

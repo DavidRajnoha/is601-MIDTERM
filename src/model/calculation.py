@@ -1,11 +1,12 @@
-import logging
 from typing import Callable, List, Union, Optional
 from decimal import Decimal, InvalidOperation
 import uuid
 from datetime import datetime
 
+from src.core.logging_decorator import log_class
 from src.core.operation_registry import operation_registry
 
+@log_class
 class Calculation:
     """
     Represents a calculation that uses an operation on multiple numbers.
@@ -78,7 +79,7 @@ class Calculation:
         try:
             operands = [Decimal(op) for op in data['operands'].split(',')]
         except InvalidOperation:
-            logging.debug(f"Invalid operand value: {data['operands']}")
+            cls.logger.warning(f"Invalid operand value encountered when parsing calculation. Operand value: {data['operands']}")
             raise ValueError("Invalid operand value")
 
         operation_name = data['operation_name']

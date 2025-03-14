@@ -32,19 +32,6 @@ class App:
         """
         self.command_handler.load_commands(commands_package)
 
-    def configure_logging(self):
-        """
-        Configures the logging level.
-        """
-        os.makedirs("logs", exist_ok=True)
-        if os.path.exists("logging.conf"):
-            logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
-            logging_configuration = "configured from logging.conf"
-        else:
-            logging.basicConfig(level=logging.DEBUG)
-            logging_configuration = "configured with basicConfig"
-        logging.info(f"Logging {logging_configuration}")
-
     def setup_dependencies(self):
         """
         Configures the application dependencies.
